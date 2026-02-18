@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts";
 import type { Category } from "../types/models";
 import { sumByCategory, sumCategories } from "../utils/calc";

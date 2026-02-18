@@ -1,4 +1,4 @@
-import React from "react";
+
 import type { Category, Item, Side } from "../types/models";
 
 type Props = {
