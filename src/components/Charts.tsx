@@ -22,17 +22,30 @@ export default function Charts({ bridePrice, dowry }: Props) {
 
   const names = useMemo(() => byCatLeft.map((x) => x.name), [byCatLeft]);
 
-  const barRef = useRef<HTMLDivElement | null>(null);
-  const stackRef = useRef<HTMLDivElement | null>(null);
+  const barElRef = useRef<HTMLDivElement | null>(null);
+  const stackElRef = useRef<HTMLDivElement | null>(null);
+
+  const barChartRef = useRef<echarts.EChartsType | null>(null);
+  const stackChartRef = useRef<echarts.EChartsType | null>(null);
 
   const diff = totalLeft - totalRight;
   const meme = getMemeComment(totalLeft, totalRight);
 
   useEffect(() => {
-    if (!barRef.current || !stackRef.current) return;
+    if (!barElRef.current || !stackElRef.current) return;
 
-    const barChart = echarts.init(barRef.current);
-    const stackChart = echarts.init(stackRef.current);
+    // 复用实例：避免重复 init 导致异常
+    barChartRef.current =
+      barChartRef.current ?? echarts.init(barElRef.current);
+    stackChartRef.current =
+      stackChartRef.current ?? echarts.init(stackElRef.current);
+
+    const barChart = barChartRef.current;
+    const stackChart = stackChartRef.current;
+
+    // 每次更新先清空，再 setOption
+    barChart.clear();
+    stackChart.clear();
 
     barChart.setOption({
       title: { text: "总额对比" },
@@ -64,12 +77,16 @@ export default function Charts({ bridePrice, dowry }: Props) {
       barChart.resize();
       stackChart.resize();
     };
+
     window.addEventListener("resize", onResize);
 
+    // 页面首次渲染时有时容器尺寸还没稳定，延迟一次 resize 更稳
+    const t = window.setTimeout(onResize, 50);
+
     return () => {
+      window.clearTimeout(t);
       window.removeEventListener("resize", onResize);
-      barChart.dispose();
-      stackChart.dispose();
+      // 注意：不 dispose，避免 StrictMode/重复挂载造成闪断
     };
   }, [totalLeft, totalRight, names, byCatLeft, byCatRight]);
 
@@ -84,7 +101,6 @@ export default function Charts({ bridePrice, dowry }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* 结果概览 */}
       <div className="rounded-2xl border shadow-sm p-4">
         <div className="text-lg font-semibold">结果概览</div>
         <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -104,7 +120,6 @@ export default function Charts({ bridePrice, dowry }: Props) {
         </div>
       </div>
 
-      {/* 梗评语 */}
       <div className={`rounded-2xl border shadow-sm p-4 ${memeBg}`}>
         <div className="font-semibold">{meme.title}</div>
         <div className="text-sm text-gray-700 mt-1">{meme.text}</div>
@@ -113,14 +128,12 @@ export default function Charts({ bridePrice, dowry }: Props) {
         </div>
       </div>
 
-      {/* 图表 1：总额对比 */}
       <div className="rounded-2xl border shadow-sm p-4">
-        <div ref={barRef} style={{ width: "100%", height: 320 }} />
+        <div ref={barElRef} style={{ width: "100%", height: 320 }} />
       </div>
 
-      {/* 图表 2：类目堆叠对比 */}
       <div className="rounded-2xl border shadow-sm p-4">
-        <div ref={stackRef} style={{ width: "100%", height: 360 }} />
+        <div ref={stackElRef} style={{ width: "100%", height: 360 }} />
       </div>
     </div>
   );
